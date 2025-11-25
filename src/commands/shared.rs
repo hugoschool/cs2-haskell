@@ -2,11 +2,11 @@ use anyhow::Result;
 use std::env;
 
 pub fn get_temp_path(package: &str) -> String {
-    format!("/tmp/cs2-{}", package)
+    format!("/tmp/cs2-haskell-{}", package)
 }
 
 pub fn get_final_path(package: &str) -> String {
-    format!("/usr/local/share/cs2/{}", package)
+    format!("/usr/local/share/cs2-haskell/{}", package)
 }
 
 pub fn warn_path_var(directory: &str) -> Result<()> {

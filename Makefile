@@ -1,7 +1,7 @@
 CARGO	?=	$(shell which cargo)
 
 PREFIX	?=	/usr/local
-BINARY	:=	cs2
+BINARY	:=	cs2-haskell
 
 all:	target/debug/$(BINARY)
 
