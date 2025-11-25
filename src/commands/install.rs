@@ -92,24 +92,24 @@ fn verify_clangpp_version() -> Result<()> {
     Ok(())
 }
 
-fn install_all(parallelism: &String) -> Result<()> {
-    let all_packages = [Packages::Epiclang, Packages::Banana];
+fn install_all() -> Result<()> {
+    let all_packages = [Packages::Lambdananas];
 
     for package in all_packages {
-        package.install(parallelism)?;
+        package.install()?;
     }
     Ok(())
 }
 
-pub fn handler(package: &Option<String>, jobs: &String) -> Result<()> {
+pub fn handler(package: &Option<String>) -> Result<()> {
     create_directory(get_final_path("").as_str())?;
     verify_clang_version()?;
     verify_clangpp_version()?;
 
     if let Some(package_str) = package {
         let package = Packages::from_str(package_str)?;
-        return package.install(jobs);
+        return package.install();
     }
 
-    install_all(jobs)
+    install_all()
 }

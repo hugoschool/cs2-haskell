@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::{path::Path, process::Command, str::FromStr};
+use std::{process::Command, str::FromStr};
 
 use crate::package::Packages;
 
@@ -31,12 +31,12 @@ pub fn pull_repo(path: &str, package: &str) -> Result<bool> {
     }
 }
 
-fn update_all(parallelism: &String, force: bool) -> Result<()> {
-    let packages = [Packages::Cs2, Packages::Epiclang, Packages::Banana];
+fn update_all(force: bool) -> Result<()> {
+    let packages = [Packages::Cs2Haskell];
 
     for package in packages {
-        if let Err(e) = package.update(parallelism, force) {
-            if package == Packages::Cs2 {
+        if let Err(e) = package.update(force) {
+            if package == Packages::Cs2Haskell {
                 println!("{}", e);
             } else {
                 return Err(e);
@@ -46,27 +46,20 @@ fn update_all(parallelism: &String, force: bool) -> Result<()> {
     Ok(())
 }
 
-/// It's there for future updates and especially the depreciation of
-/// `banana-check-repo-cs2`
 /// Does cleanup work, checks if there are files that shouldn't be there,
 /// or should be moved and such.
 /// Doesn't actually remove them for you, but suggests that they can be removed.
 fn pre_update() -> Result<()> {
-    if Path::new("/usr/local/bin/banana-check-repo-cs2").exists() {
-        println!("cs2 no longer uses /usr/local/bin/banana-check-repo-cs2");
-        println!("You can safely remove this file from your computer with:");
-        println!("$ sudo rm /usr/local/bin/banana-check-repo-cs2 (this wasn't ran, it's up to you to do it.)");
-    }
     Ok(())
 }
 
-pub fn handler(package: &Option<String>, jobs: &String, force: bool) -> Result<()> {
+pub fn handler(package: &Option<String>, force: bool) -> Result<()> {
     pre_update()?;
 
     if let Some(package_str) = package {
         let package = Packages::from_str(package_str)?;
-        return package.update(jobs, force);
+        return package.update(force);
     }
 
-    update_all(jobs, force)
+    update_all(force)
 }

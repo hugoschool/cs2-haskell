@@ -4,9 +4,6 @@ use std::process::Command;
 
 use anyhow::{anyhow, Result};
 
-pub const BANANA_ERROR_PREFIX: &str = "[Banana] ";
-pub const DEFAULT_RUN_ENV: [(&str, &str); 1] = [("CC", "epiclang")];
-
 #[allow(clippy::upper_case_acronyms)]
 pub enum Colors {
     GRAY,
@@ -40,15 +37,6 @@ pub fn split_output(output: Vec<u8>) -> Result<Vec<String>> {
     let output_str = String::from_utf8(output)?;
 
     Ok(output_str.split("\n").map(String::from).collect::<Vec<_>>())
-}
-
-pub fn merge_outputs(stdout: Vec<u8>, stderr: Vec<u8>) -> Vec<u8> {
-    let mut merged: Vec<u8> = Vec::with_capacity(stdout.len() + stderr.len());
-
-    stdout.iter().for_each(|c| merged.push(*c));
-    stderr.iter().for_each(|c| merged.push(*c));
-
-    merged
 }
 
 /// similar to fs::create_dir_all except with sudo privileges

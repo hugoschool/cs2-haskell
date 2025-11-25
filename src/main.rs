@@ -19,10 +19,6 @@ enum ArgSubcommand {
         /// Only install a certain package
         #[arg(long)]
         package: Option<String>,
-
-        /// Compile, if possible, with parallelism
-        #[arg(short, long, default_missing_value = "", num_args = 0..=1)]
-        jobs: Option<String>,
     },
     /// Update cs2 and the dependencies
     Update {
@@ -30,18 +26,9 @@ enum ArgSubcommand {
         #[arg(long)]
         package: Option<String>,
 
-        /// Compile, if possible, with parallelism
-        #[arg(short, long, default_missing_value = "", num_args = 0..=1)]
-        jobs: Option<String>,
-
         /// Force update even if there is nothing new when fetching
         #[arg(short, long)]
         force: bool,
-    },
-    /// Run your command through the cs2 helper
-    Run {
-        #[arg(action = clap::ArgAction::Append)]
-        command: Vec<String>,
     },
 }
 
@@ -50,10 +37,6 @@ enum ArgSubcommand {
 struct Args {
     #[command(subcommand)]
     command: Option<ArgSubcommand>,
-
-    /// Compile, if possible, with parallelism
-    #[arg(short, long, default_missing_value = "", num_args = 0..=1)]
-    jobs: Option<String>,
 
     /// Prints the errors in a correct way for the specified platform
     #[arg(long)]
@@ -64,27 +47,12 @@ struct Args {
     no_ignore: bool,
 }
 
-fn get_jobs_number(jobs: &Option<String>) -> String {
-    if let Some(jobs) = jobs {
-        if jobs.is_empty() {
-            std::thread::available_parallelism()
-                .unwrap()
-                .get()
-                .to_string()
-        } else {
-            jobs.to_string()
-        }
-    } else {
-        "1".to_string()
-    }
-}
-
 fn main() {
     let args = Args::parse();
 
     match &args.command {
-        Some(ArgSubcommand::Install { package, jobs }) => {
-            match commands::install::handler(package, &get_jobs_number(jobs)) {
+        Some(ArgSubcommand::Install { package }) => {
+            match commands::install::handler(package) {
                 Ok(_) => {}
                 Err(e) => {
                     println!("{}", e);
@@ -92,26 +60,8 @@ fn main() {
                 }
             };
         }
-        Some(ArgSubcommand::Update {
-            package,
-            jobs,
-            force,
-        }) => {
-            match commands::update::handler(package, &get_jobs_number(jobs), *force) {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("{}", e);
-                    std::process::exit(1);
-                }
-            };
-        }
-        Some(ArgSubcommand::Run { command }) => {
-            if command.is_empty() {
-                println!("No command provided");
-                std::process::exit(1);
-            }
-
-            match commands::run::run(command) {
+        Some(ArgSubcommand::Update { package, force }) => {
+            match commands::update::handler(package, *force) {
                 Ok(_) => {}
                 Err(e) => {
                     println!("{}", e);
@@ -150,7 +100,7 @@ fn main() {
                     std::process::exit(1);
                 }
 
-                let lines = match build_systems::find(&get_jobs_number(&args.jobs)) {
+                let lines = match build_systems::find() {
                     Ok(lines) => lines,
                     Err(e) => {
                         println!("{}", e);

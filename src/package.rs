@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::Command;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Ok, Result, anyhow};
 use thiserror::Error;
 
 use crate::commands::{
@@ -11,15 +11,10 @@ use crate::commands::{
     update::pull_repo,
 };
 
-const EPICLANG_REPO: &str = "git@github.com:Epitech/epiclang.git";
-const BANANA_REPO: &str = "git@github.com:Epitech/banana-coding-style-checker.git";
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Packages {
-    Cs2,
-    Epiclang,
-    Banana,
-    BananaCheckRepo,
+    Cs2Haskell,
+    Lambdananas
 }
 
 #[derive(Error, Debug)]
@@ -82,10 +77,8 @@ impl FromStr for Packages {
 
     fn from_str(input: &str) -> Result<Self> {
         match input.to_ascii_lowercase().as_str() {
-            "cs2" => Ok(Self::Cs2),
-            "epiclang" => Ok(Self::Epiclang),
-            "banana" => Ok(Self::Banana),
-            "banana-check-repo" => Ok(Self::BananaCheckRepo),
+            "cs2-haskell" => Ok(Self::Cs2Haskell),
+            "lambdananas" => Ok(Self::Lambdananas),
             _ => Err(anyhow!("Couldn't find package")),
         }
     }
@@ -94,16 +87,14 @@ impl FromStr for Packages {
 impl Packages {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            Self::Cs2 => "cs2",
-            Self::Epiclang => "epiclang",
-            Self::Banana => "banana",
-            Self::BananaCheckRepo => "banana-check-repo",
+            Self::Cs2Haskell => "cs2-haskell",
+            Self::Lambdananas => "lambdananas"
         }
     }
 
-    pub fn build(&self, parallelism: &String) -> Result<()> {
+    pub fn build(&self, ) -> Result<()> {
         match *self {
-            Self::Cs2 => {
+            Self::Cs2Haskell => {
                 let build_command = format!("cd {} && ./compile.sh", get_final_path(self.as_str()));
 
                 if !Command::new("sh")
@@ -111,93 +102,16 @@ impl Packages {
                     .status()?
                     .success()
                 {
-                    return Err(PackagesError::Build(Self::Cs2).into());
+                    return Err(PackagesError::Build(Self::Cs2Haskell).into());
                 }
             }
-            Self::Epiclang => {
-                let build_command = format!(
-                    "cd {} && sudo ./manual-install.sh",
-                    get_final_path(self.as_str())
-                );
-
-                if !Command::new("sh")
-                    .args(["-c", build_command.as_str()])
-                    .status()?
-                    .success()
-                {
-                    return Err(PackagesError::Install(Self::Epiclang).into());
-                }
-            }
-            Self::Banana => {
-                let final_path = get_final_path(self.as_str());
-                let build_command = format!("cd {} && ./scripts/make_plugin.sh", final_path);
-
-                let mut full_command = Command::new("sh");
-                full_command.args(["-c", build_command.as_str()]);
-
-                full_command.env("CMAKE_BUILD_PARALLEL_LEVEL", parallelism);
-
-                if !full_command.status()?.success() {
-                    return Err(PackagesError::Build(Self::Banana).into());
-                }
-
-                if !Command::new("sudo")
-                    .args([
-                        "install",
-                        "-Dm755",
-                        format!("{}/epiclang-plugin-banana.so", final_path).as_str(),
-                        "/usr/local/lib/epiclang/plugins/epiclang-plugin-banana.so",
-                    ])
-                    .status()?
-                    .success()
-                {
-                    return Err(PackagesError::Install(Self::Banana).into());
-                }
-
-                // checks that banana-check-repo is installed or "builds" it if it isn't
-                if Packages::BananaCheckRepo.verify_install().is_ok() {
-                    Packages::BananaCheckRepo.build(parallelism)?;
-                }
-            }
-            Self::BananaCheckRepo => {
-                let final_path = get_final_path("banana");
-                if !Path::new(&final_path).exists() {
-                    return Err(anyhow!(
-                        "Impossible to find banana repo, are you sure it is installed?",
-                    ));
-                }
-
-                let file_name = format!("{}/src/banana-check-repo", final_path);
-
-                if !Command::new("sudo")
-                    .args([
-                        "install",
-                        "-Dm755",
-                        file_name.as_str(),
-                        "/usr/local/bin/banana-check-repo",
-                    ])
-                    .status()?
-                    .success()
-                {
-                    return Err(PackagesError::Move(Self::BananaCheckRepo).into());
-                }
-            }
+            Self::Lambdananas => {}
         }
         Ok(())
     }
 
     pub fn get_packages(&self) -> &[&str] {
         match *self {
-            Self::Epiclang => &["/usr/bin/epiclang", "/usr/local/bin/epiclang"],
-            Self::Banana => &[
-                "/usr/lib/epiclang/plugins/epitech-plugin-banana.so",
-                "/usr/lib/epiclang/plugins/epiclang-plugin-banana.so",
-                "/usr/local/lib/epiclang/plugins/epiclang-plugin-banana.so",
-            ],
-            Self::BananaCheckRepo => &[
-                "/usr/bin/banana-check-repo",
-                "/usr/local/bin/banana-check-repo",
-            ],
             _ => &[],
         }
     }
@@ -214,7 +128,7 @@ impl Packages {
         Ok(())
     }
 
-    pub fn install(&self, parallelism: &String) -> Result<()> {
+    pub fn install(&self) -> Result<()> {
         let package = self.as_str();
         let temp_path = get_temp_path(package);
         let final_path = get_final_path(package);
@@ -228,33 +142,16 @@ impl Packages {
         println!("Installing {}", package);
 
         match *self {
-            Self::Epiclang => {
-                clone_repo(EPICLANG_REPO, temp_path.as_str())?;
-
-                if !Command::new("chmod")
-                    .args(["+x", format!("{}/manual-install.sh", temp_path).as_str()])
-                    .status()?
-                    .success()
-                {
-                    return Err(anyhow!("Couldn't chmod manual-install.sh"));
-                }
-
-                move_to_final_path(temp_path.as_str(), Path::new(&final_path))?;
-            }
-            Self::Banana => {
-                clone_repo(BANANA_REPO, temp_path.as_str())?;
-                move_to_final_path(temp_path.as_str(), Path::new(&final_path))?;
-            }
             _ => {}
         }
 
-        self.build(parallelism)?;
+        self.build()?;
         _ = warn_path_var("/usr/local/bin");
 
         Ok(())
     }
 
-    pub fn update(&self, parallelism: &String, force: bool) -> Result<()> {
+    pub fn update(&self, force: bool) -> Result<()> {
         let package = self.as_str();
         let path = get_final_path(package);
 
@@ -267,7 +164,7 @@ impl Packages {
         println!("Updating {}", package);
 
         if pull_repo(&path, self.as_str())? || force {
-            self.build(parallelism)?;
+            self.build()?;
         } else {
             println!("Nothing to update");
         }

@@ -92,10 +92,6 @@ fn skip_leading_dot(file: &str) -> &str {
 }
 
 fn parse_line(line: String) -> Option<LineError> {
-    if !line.contains(shared::BANANA_ERROR_PREFIX) {
-        return None;
-    }
-
     let re = Regex::new(
         r"(?m)^([^:]+):?([0-9]*):?([0-9]*):.*(Minor|Major|Info|Fatal)] (.*?) \(([A-Z]-[A-Z][0-9]).*$",
     );
