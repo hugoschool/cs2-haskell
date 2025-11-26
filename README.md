@@ -4,7 +4,7 @@ Epitech Haskell Coding Style Helper
 
 ## Features
 
-- Easily install [lambdananas](https://github.com/Epitech/lambnananas) [(see here)](#installingupdating-packages)
+- Easily install [lambdananas](https://github.com/Epitech/lambdananas) [(see here)](#installingupdating-packages)
 - Ignores all errors from files in your `.gitignore`
 
 ## Usage

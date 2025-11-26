@@ -38,11 +38,6 @@ enum PackagesError {
 
     #[error("Already installed, use cs2 update instead")]
     AlreadyInstalled,
-
-    #[error(
-        "{0} seems to be installed by a package manager, cs2 won't be able to install/update it"
-    )]
-    InstalledByPackageManager(String),
 }
 
 /// Release link must contain a $REPLACE
@@ -144,27 +139,16 @@ impl Packages {
     }
 
     pub fn get_packages(&self) -> &[&str] {
-        &[]
-    }
-
-    pub fn verify_install(&self) -> Result<()> {
-        let packages = self.get_packages();
-        let final_path = get_final_path(self.as_str());
-
-        for package in packages {
-            if Path::new(package).exists() && !Path::new(&final_path).exists() {
-                return Err(PackagesError::InstalledByPackageManager(package.to_string()).into());
-            }
+        match *self {
+            Self::Lambdananas => &["/usr/local/bin/lambdananas"],
+            _ => &[]
         }
-        Ok(())
     }
 
     pub fn install(&self) -> Result<()> {
         let package = self.as_str();
         let temp_path = get_temp_path(package);
         let final_path = get_final_path(package);
-
-        self.verify_install()?;
 
         if Path::new(&final_path).exists() {
             return Err(PackagesError::AlreadyInstalled.into());
@@ -193,8 +177,6 @@ impl Packages {
     pub fn update(&self, force: bool) -> Result<()> {
         let package = self.as_str();
         let path = get_final_path(package);
-
-        self.verify_install()?;
 
         if !Path::new(&path).exists() {
             return Err(PackagesError::NotFound(self.clone()).into());

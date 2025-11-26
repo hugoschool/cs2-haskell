@@ -6,7 +6,11 @@ pub fn get_temp_path(package: &str) -> String {
 }
 
 pub fn get_final_path(package: &str) -> String {
-    format!("/usr/local/share/cs2-haskell/{}", package)
+    if package == "lambdananas" {
+        String::from("/usr/local/bin/lambdananas")
+    } else {
+        format!("/usr/local/share/cs2-haskell/{}", package)
+    }
 }
 
 pub fn warn_path_var(directory: &str) -> Result<()> {
