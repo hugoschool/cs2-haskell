@@ -13,11 +13,11 @@ use crate::commands::{
     update::pull_repo,
 };
 
-const LAMBDANANAS_RELEASE_API: &'static str =
+const LAMBDANANAS_RELEASE_API: &str =
     "https://api.github.com/repos/Epitech/lambdananas/releases/latest";
-const LAMBDANANAS_RELEASE_LINK: &'static str =
+const LAMBDANANAS_RELEASE_LINK: &str =
     "https://github.com/Epitech/lambdananas/releases/download/$REPLACE/lambdananas";
-const CS2_USER_AGENT: &'static str = "cs2-haskell <https://github.com/hugoschool/cs2-haskell>";
+const CS2_USER_AGENT: &str = "cs2-haskell <https://github.com/hugoschool/cs2-haskell>";
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Packages {
@@ -50,8 +50,8 @@ enum PackagesError {
 
 /// Release link must contain a $REPLACE
 fn download_latest_release(
-    release_url: &'static str,
-    release_link: &'static str,
+    release_url: &str,
+    release_link: &str,
     temp_path: &str,
 ) -> Result<()> {
     let client = Client::new();
@@ -142,9 +142,7 @@ impl Packages {
     }
 
     pub fn get_packages(&self) -> &[&str] {
-        match *self {
-            _ => &[],
-        }
+        &[]
     }
 
     pub fn verify_install(&self) -> Result<()> {
@@ -172,6 +170,7 @@ impl Packages {
 
         println!("Installing {}", package);
 
+        #[allow(clippy::single_match)]
         match *self {
             Self::Lambdananas => {
                 _ = download_latest_release(

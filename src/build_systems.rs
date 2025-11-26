@@ -23,9 +23,7 @@ impl BuildSystems {
     }
 
     fn clean(&self) -> Result<()> {
-        match *self {
-            _ => Ok(()),
-        }
+        Ok(())
     }
 }
 
