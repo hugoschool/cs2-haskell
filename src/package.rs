@@ -3,7 +3,9 @@ use std::path::Path;
 use std::process::Command;
 use std::str::FromStr;
 
-use anyhow::{Ok, Result, anyhow};
+use anyhow::{anyhow, Ok, Result};
+use regex::Regex;
+use reqwest::{blocking::Client, header::USER_AGENT};
 use thiserror::Error;
 
 use crate::commands::{
@@ -11,10 +13,16 @@ use crate::commands::{
     update::pull_repo,
 };
 
+const LAMBDANANAS_RELEASE_API: &'static str =
+    "https://api.github.com/repos/Epitech/lambdananas/releases/latest";
+const LAMBDANANAS_RELEASE_LINK: &'static str =
+    "https://github.com/Epitech/lambdananas/releases/download/$REPLACE/lambdananas";
+const CS2_USER_AGENT: &'static str = "cs2-haskell <https://github.com/hugoschool/cs2-haskell>";
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Packages {
     Cs2Haskell,
-    Lambdananas
+    Lambdananas,
 }
 
 #[derive(Error, Debug)]
@@ -31,9 +39,6 @@ enum PackagesError {
     #[error("Impossible to find {0}, are you sure it is installed?")]
     NotFound(Packages),
 
-    #[error("Impossible to clone {0}, make sure you have the permissions to do so")]
-    RepoClone(String),
-
     #[error("Already installed, use cs2 update instead")]
     AlreadyInstalled,
 
@@ -43,16 +48,42 @@ enum PackagesError {
     InstalledByPackageManager(String),
 }
 
-fn clone_repo(link: &str, temp_path: &str) -> Result<()> {
-    if !Command::new("git")
-        .args(["clone", link, temp_path])
+/// Release link must contain a $REPLACE
+fn download_latest_release(
+    release_url: &'static str,
+    release_link: &'static str,
+    temp_path: &str,
+) -> Result<()> {
+    let client = Client::new();
+    let response = client
+        .get(release_url)
+        .header(USER_AGENT, CS2_USER_AGENT)
+        .send()?
+        .text()?;
+    let mut tag_name: Option<&str> = None;
+
+    if let Some((_, [tag])) = Regex::new(r#"tag_name":"(.*?)".*"#)?
+        .captures_iter(&response)
+        .map(|c| c.extract())
+        .next()
+    {
+        tag_name = Some(tag);
+    }
+
+    let new_release_link = &release_link.replace("$REPLACE", tag_name.unwrap());
+    if Command::new("wget")
+        .args(["-O", temp_path, new_release_link])
         .status()?
         .success()
     {
-        return Err(PackagesError::RepoClone(link.to_string()).into());
+        return Err(anyhow!("Impossible to download into {}", temp_path));
     };
-
     Ok(())
+}
+
+// Returns true if both files are the same, false if otherwise
+fn compare_sha_sums(file: String) -> Result<bool> {
+    Ok(true)
 }
 
 fn move_to_final_path(temp_path: &str, final_path: &Path) -> Result<()> {
@@ -88,11 +119,11 @@ impl Packages {
     pub fn as_str(&self) -> &'static str {
         match *self {
             Self::Cs2Haskell => "cs2-haskell",
-            Self::Lambdananas => "lambdananas"
+            Self::Lambdananas => "lambdananas",
         }
     }
 
-    pub fn build(&self, ) -> Result<()> {
+    pub fn build(&self) -> Result<()> {
         match *self {
             Self::Cs2Haskell => {
                 let build_command = format!("cd {} && ./compile.sh", get_final_path(self.as_str()));
@@ -142,6 +173,21 @@ impl Packages {
         println!("Installing {}", package);
 
         match *self {
+            Self::Lambdananas => {
+                _ = download_latest_release(
+                    LAMBDANANAS_RELEASE_API,
+                    LAMBDANANAS_RELEASE_LINK,
+                    &temp_path,
+                );
+
+                if !Command::new("chmod")
+                    .args(["+x", &temp_path])
+                    .status()?
+                    .success()
+                {
+                    return Err(anyhow!("Impossible to chmod {}", temp_path));
+                }
+            }
             _ => {}
         }
 
