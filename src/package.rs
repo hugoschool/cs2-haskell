@@ -33,9 +33,6 @@ enum PackagesError {
     #[error("Impossible to install {0}")]
     Install(Packages),
 
-    #[error("Impossible to move {0} to it's destination")]
-    Move(Packages),
-
     #[error("Impossible to find {0}, are you sure it is installed?")]
     NotFound(Packages),
 
@@ -49,11 +46,7 @@ enum PackagesError {
 }
 
 /// Release link must contain a $REPLACE
-fn download_latest_release(
-    release_url: &str,
-    release_link: &str,
-    temp_path: &str,
-) -> Result<()> {
+fn download_latest_release(release_url: &str, release_link: &str, temp_path: &str) -> Result<()> {
     let client = Client::new();
     let response = client
         .get(release_url)
@@ -71,7 +64,7 @@ fn download_latest_release(
     }
 
     let new_release_link = &release_link.replace("$REPLACE", tag_name.unwrap());
-    if Command::new("wget")
+    if !Command::new("wget")
         .args(["-O", temp_path, new_release_link])
         .status()?
         .success()
@@ -82,25 +75,15 @@ fn download_latest_release(
 }
 
 // Returns true if both files are the same, false if otherwise
-fn compare_sha_sums(file: String) -> Result<bool> {
-    Ok(true)
-}
+fn compare_sha_sums(file_one: &String, file_two: &String) -> Result<bool> {
+    let file_one_path = Path::new(file_one);
+    let file_two_path = Path::new(file_two);
 
-fn move_to_final_path(temp_path: &str, final_path: &Path) -> Result<()> {
-    let final_path_str = final_path.to_str().unwrap();
-
-    if final_path.exists() {
-        return Ok(());
+    if sha256::try_digest(file_one_path)? != sha256::try_digest(file_two_path)? {
+        Ok(false)
+    } else {
+        Ok(true)
     }
-
-    if !Command::new("sudo")
-        .args(["mv", temp_path, final_path_str])
-        .status()?
-        .success()
-    {
-        return Err(anyhow!("Impossible to move to {}", final_path_str));
-    };
-    Ok(())
 }
 
 impl FromStr for Packages {
@@ -136,7 +119,26 @@ impl Packages {
                     return Err(PackagesError::Build(Self::Cs2Haskell).into());
                 }
             }
-            Self::Lambdananas => {}
+            Self::Lambdananas => {
+                let temp_path = get_temp_path(self.as_str());
+                let final_path = get_final_path(self.as_str());
+
+                if !Command::new("chmod")
+                    .args(["+x", &temp_path])
+                    .status()?
+                    .success()
+                {
+                    return Err(anyhow!("Impossible to chmod {}", temp_path));
+                }
+
+                if !Command::new("sudo")
+                    .args(["install", "-Dm755", &temp_path, &final_path])
+                    .status()?
+                    .success()
+                {
+                    return Err(PackagesError::Install(Self::Lambdananas).into());
+                }
+            }
         }
         Ok(())
     }
@@ -173,19 +175,11 @@ impl Packages {
         #[allow(clippy::single_match)]
         match *self {
             Self::Lambdananas => {
-                _ = download_latest_release(
+                download_latest_release(
                     LAMBDANANAS_RELEASE_API,
                     LAMBDANANAS_RELEASE_LINK,
                     &temp_path,
-                );
-
-                if !Command::new("chmod")
-                    .args(["+x", &temp_path])
-                    .status()?
-                    .success()
-                {
-                    return Err(anyhow!("Impossible to chmod {}", temp_path));
-                }
+                )?;
             }
             _ => {}
         }
@@ -208,10 +202,29 @@ impl Packages {
 
         println!("Updating {}", package);
 
-        if pull_repo(&path, self.as_str())? || force {
-            self.build()?;
-        } else {
-            println!("Nothing to update");
+        match *self {
+            Self::Cs2Haskell => {
+                if pull_repo(&path, self.as_str())? || force {
+                    self.build()?;
+                } else {
+                    println!("Nothing to update");
+                }
+            }
+            Self::Lambdananas => {
+                let temp_path = get_temp_path(package);
+
+                download_latest_release(
+                    LAMBDANANAS_RELEASE_API,
+                    LAMBDANANAS_RELEASE_LINK,
+                    &temp_path,
+                )?;
+
+                if !compare_sha_sums(&temp_path, &path)? {
+                    self.build()?
+                } else {
+                    println!("Nothing to update");
+                }
+            }
         }
 
         Ok(())

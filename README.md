@@ -1,6 +1,6 @@
 # cs2-haskell
 
-Epitech Lambdananas Coding Style Helper
+Epitech Haskell Coding Style Helper
 
 ## Features
 

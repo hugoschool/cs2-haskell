@@ -32,7 +32,7 @@ pub fn pull_repo(path: &str, package: &str) -> Result<bool> {
 }
 
 fn update_all(force: bool) -> Result<()> {
-    let packages = [Packages::Cs2Haskell];
+    let packages = [Packages::Cs2Haskell, Packages::Lambdananas];
 
     for package in packages {
         if let Err(e) = package.update(force) {
