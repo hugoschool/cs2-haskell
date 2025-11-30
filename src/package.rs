@@ -36,7 +36,7 @@ enum PackagesError {
     #[error("Impossible to find {0}, are you sure it is installed?")]
     NotFound(Packages),
 
-    #[error("Already installed, use cs2 update instead")]
+    #[error("Already installed, use cs2-haskell update instead")]
     AlreadyInstalled,
 }
 

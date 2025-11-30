@@ -95,7 +95,7 @@ fn main() {
             } else {
                 if !build_systems::verify_packages() {
                     println!(
-                        "Some packages seem to not be installed, make sure you ran cs2 install before"
+                        "Some packages seem to not be installed, make sure you ran cs2-haskell install before"
                     );
                     std::process::exit(1);
                 }

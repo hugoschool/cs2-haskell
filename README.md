@@ -2,6 +2,12 @@
 
 Epitech Haskell Coding Style Helper
 
+> [!WARNING]
+> The Haskell version of cs2 isn't actively supported, bugs may occur.
+>
+>
+> Make sure to report them on the [issue tracker](https://github.com/hugoschool/cs2-haskell).
+
 ## Features
 
 - Easily install [lambdananas](https://github.com/Epitech/lambdananas) [(see here)](#installingupdating-packages)
