@@ -1,6 +1,7 @@
 use std::path::Path;
+use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use crate::package::Packages;
 use crate::shared;
@@ -15,7 +16,13 @@ impl BuildSystems {
 
         let build_system_output = match *self {
             Self::Default => {
-                vec![1, 2, 3]
+                let command = Command::new("lambdananas").arg(".").output()?;
+
+                if !command.status.success() {
+                    return Err(anyhow!("Couldn't run lambdananas"));
+                }
+
+                command.stdout
             }
         };
 

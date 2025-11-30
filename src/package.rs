@@ -141,7 +141,7 @@ impl Packages {
     pub fn get_packages(&self) -> &[&str] {
         match *self {
             Self::Lambdananas => &["/usr/local/bin/lambdananas"],
-            _ => &[]
+            _ => &[],
         }
     }
 

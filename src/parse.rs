@@ -25,11 +25,11 @@ impl FromStr for ErrorLevel {
     type Err = anyhow::Error;
 
     fn from_str(input: &str) -> Result<Self> {
-        match input {
-            "Fatal" => Ok(Self::Fatal),
-            "Major" => Ok(Self::Major),
-            "Minor" => Ok(Self::Minor),
-            "Info" => Ok(Self::Info),
+        match input.to_lowercase().as_str() {
+            "fatal" => Ok(Self::Fatal),
+            "major" => Ok(Self::Major),
+            "minor" => Ok(Self::Minor),
+            "info" => Ok(Self::Info),
             _ => Err(anyhow!("Couldn't find error type")),
         }
     }
@@ -92,10 +92,23 @@ fn skip_leading_dot(file: &str) -> &str {
 }
 
 fn parse_line(line: String) -> Option<LineError> {
-    let re = Regex::new(
-        r"(?m)^([^:]+):?([0-9]*):?([0-9]*):.*(Minor|Major|Info|Fatal)] (.*?) \(([A-Z]-[A-Z][0-9]).*$",
-    );
-    if let Some((_, [file, line_nb, col_nb, level_text, description, rule])) = re
+    // Forbidden extension special message
+    if line.contains("contains forbidden extension") {
+        let file = line.split(" ").next()?;
+        return Some(LineError {
+            file: file.to_string(),
+            line_nb: None,
+            col_nb: None,
+            level: ErrorLevel::Major,
+            rule: String::from("H-E1"),
+            description: String::from("Forbidden extension"),
+            ignore: false,
+            occurrences: 1,
+        });
+    }
+
+    let re = Regex::new(r"(?m)^([^:]+):?([0-9]*): (MINOR|MAJOR|INFO|FATAL):(.*) # (.*)");
+    if let Some((_, [file, line_nb, level_text, rule, description])) = re
         .expect("REASON")
         .captures_iter(&line)
         .map(|c| c.extract())
@@ -106,11 +119,6 @@ fn parse_line(line: String) -> Option<LineError> {
         } else {
             Some(line_nb.to_string().parse().unwrap())
         };
-        let col_nb: Option<u32> = if col_nb.is_empty() {
-            None
-        } else {
-            Some(col_nb.to_string().parse().unwrap())
-        };
         let file = if file.starts_with("./") {
             skip_leading_dot(file)
         } else {
@@ -119,7 +127,7 @@ fn parse_line(line: String) -> Option<LineError> {
         return Some(LineError {
             file: file.to_string(),
             line_nb,
-            col_nb,
+            col_nb: None,
             level: ErrorLevel::from_str(level_text).unwrap(),
             rule: rule.to_string(),
             description: description.to_string(),

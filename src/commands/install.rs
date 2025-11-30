@@ -2,11 +2,7 @@ use std::str::FromStr;
 
 use anyhow::Result;
 
-use crate::{
-    commands::shared::{get_final_path},
-    package::Packages,
-    shared::create_directory,
-};
+use crate::{commands::shared::get_final_path, package::Packages, shared::create_directory};
 
 fn install_all() -> Result<()> {
     let all_packages = [Packages::Lambdananas];
