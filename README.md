@@ -2,6 +2,8 @@
 
 Epitech Haskell Coding Style Helper
 
+[Archived reasons here](https://github.com/hugoarnal/cs2/issues/38#issuecomment-3765490048)
+
 > [!WARNING]
 > The Haskell version of cs2 isn't actively supported, bugs may occur.
 >
